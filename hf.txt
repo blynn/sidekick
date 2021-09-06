@@ -14,15 +14,46 @@ include::System.hs[]
 
 <div id="rego" style="display:none;">
 <p>
-Capability: <input id="reg_text" type="text"> <button id="reg_button" onclick="rego();">&lambda;</button>
+Capability: <input id="reg_text" type="text" value="demo"> <button id="reg_button" onclick="rego();">&lambda;</button>
 </p>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Enter "demo" to enter a demo.
+
+Otherwise choose an unguessable string and keep it in a safe place.
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 </div>
+
+<div id="demoblurb" style="display:none;">
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Welcome!
+
+  1. Click `Load`, and pick a program.
+
+  2. Click `Run` to compile and run it. Standard input and output are hooked up to the text areas below.
+
+You may save programs, but so can anyone else running this `demo`.
+The name of any saved program must be delimited by curly braces, for example:
+`{hello}`. Braces are automatically inserted if absent.
+
+For exclusive access to your own programs, log out then come back with a
+string only you know.
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+</div>
+
 <div id="app" style="display:none;">
 
 <button onclick="load()">Load</button>
 
 <button onclick="save_as()">Save As</button>
-<textarea spellcheck='false' rows='1' id="file" name="file">noname</textarea>
+<input type="text" id="file" value="noname">
+<span id='compiler' style='display:none;'><button onclick="go()"><b>Run!</b></button></span>
+<span id="msg"></span>
 
 <style>#presets {
 position:absolute;
@@ -56,14 +87,9 @@ style='box-sizing:border-box;width:100%;'>
 <br>
 <textarea spellcheck='false' id='inp' rows='2' style='box-sizing:border-box;width:100%;'></textarea>
 <br>
-<div id='compiler' style='display:none;'>
-<button onclick="go()">Run</button>
-</div>
-<span id="msg"></span>
-<br>
 <label for="out">Output:</label>
 <br>
-<textarea spellcheck='false' readonly id='out' rows='8' style='box-sizing:border-box;width:100%;'></textarea>
+<textarea spellcheck='false' readonly id='out' rows='16' style='box-sizing:border-box;width:100%;'></textarea>
 <p><span style='cursor:pointer;' onclick='hideshow("secret");'><span id='secret_toggle'>[+] Show</span> capability</span></p>
 <pre id='secret' style='display:none;'></pre>
 <button onclick="logout()">Logout</button>
@@ -71,6 +97,8 @@ style='box-sizing:border-box;width:100%;'>
 
 <script>
 "use strict";
+const presets = document.getElementById('presets');
+let load_menu_toggle = 0;
 const agentMod = WebAssembly.compileStreaming(fetch('agent.wasm'));
 async function agent(canister_id, request_type, method, arg) {
   function teen(s) { return (new TextEncoder()).encode(s); }
@@ -99,6 +127,7 @@ let cap = localStorage.getItem('cap');
 function showApp() {
   document.getElementById("app").style.display = "block";
   document.getElementById("secret").innerText = cap;
+  setupdemo();
 }
 
 function rego() {
@@ -108,13 +137,11 @@ function rego() {
   showApp();
 }
 
-if (cap == null) document.getElementById("rego").style.display = "block";
-else showApp();
-
 function logout() {
   localStorage.clear();
   document.getElementById("rego").style.display = "block";
   document.getElementById("app").style.display = "none";
+  document.getElementById("demoblurb").style.display = "none";
 }
 
 const canid = "rrkah-fqaaa-aaaaa-aaaaq-cai";
@@ -155,7 +182,7 @@ WebAssembly.instantiateStreaming(fetch('imp.wasm'), { env:
       if (modmap.has(mod)) setInput(modmap.get(mod));
     }
   }}).then(obj => {
-    document.getElementById('compiler').style.display = "block";
+    document.getElementById('compiler').style.display = "inline";
     blah = obj.instance;
   });
 
@@ -166,6 +193,14 @@ const file = document.getElementById("file");
 function save_as() {
   arg = [];
   enc(cap);
+  if (cap == "demo") {
+    if (file.value.charAt(0) != "{") {
+      file.value = "{" + file.value;
+    }
+    if (file.value.charAt(file.value.length - 1) != "}") {
+      file.value = file.value + "}";
+    }
+  }
   enc(file.value);
   enc(prog.value);
   console.log(arg);
@@ -222,7 +257,6 @@ function take(n) {
   parse_i += n;
   return String.fromCharCode.apply(null, r);
 }
-const presets = document.getElementById('presets');
 function cat_file(s) {
   presets.style.display = "none";
   load_menu_toggle = 0;
@@ -240,7 +274,6 @@ function cat_file(s) {
     }
   });
 }
-let load_menu_toggle = 0;
 function load() {
   while (presets.firstChild) presets.removeChild(presets.firstChild);
   presets.style.display = "none";
@@ -363,5 +396,17 @@ function update_module() {
     populate_modlist();
   }
 }
+
+function setupdemo() {
+  if (cap == "demo") {
+    document.getElementById("demoblurb").style.display = "block";
+    cat_file("helloworld");
+  } else {
+    document.getElementById("demoblurb").style.display = "none";
+  }
+}
+if (cap == null) document.getElementById("rego").style.display = "block";
+else showApp();
+
 </script>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
