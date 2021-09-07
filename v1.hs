@@ -48,10 +48,13 @@ leb n | n < 128 = [n]
 
 bigmapNew :: Map String (Map String String)
 bigmapNew = singleton "demo" $ fromList
-  [ ("helloworld", "import System\nmain = putStrLn \"Hello, World!\"\n")
-  , ("edigits", [r|import Base
-import System
--- Digits of e. See http://miranda.org.uk/examples.
+  [ ("hello world", "main = putStrLn \"Hello, World!\"\n")
+  , ("candid field hash", [r|-- Candid record field hash
+c2w :: Char -> Word
+c2w = fromIntegral . ord
+main = interact \s -> show $ sum $ zipWith (*) (c2w <$> reverse s) $ iterate (223*) 1
+|])
+  , ("edigits", [r|-- Digits of e. See http://miranda.org.uk/examples.
 mkdigit n | n <= 9 = chr (n + ord '0')
 norm c (d:e:x)
   | e `mod` c + 10 <= c = d + e  `div` c : e' `mod` c : x'
@@ -62,25 +65,19 @@ convert x = mkdigit h:convert t
 edigits = "2." ++ convert (repeat 1)
 main = putStr $ take 1024 edigits
 |])
-  , ("primes", [r|import Base
-import System
-primes = sieve [2..]
+  , ("primes", [r|primes = sieve [2..]
 sieve (p:x) = p : sieve [n | n <- x, n `mod` p /= 0]
 main = print $ take 100 $ primes
 |])
   , ("queens", [r|-- Eight queens puzzle. See http://miranda.org.uk/examples.
-import Base
-import System
 safe q b = and[not $ q==p || abs(q-p)==i|(p,i) <- zip b [1..]]
 queens sz = go sz where
   go 0 = [[]]
   go n = [q:b | b <- go (n - 1), q <- [1..sz], safe q b]
 main = print $ queens 8
 |])
-  , ("hexmaze", [r|-- https://fivethirtyeight.com/features/can-you-escape-this-enchanted-maze/
-import Base
+  , ("hex maze", [r|-- https://fivethirtyeight.com/features/can-you-escape-this-enchanted-maze/
 import Map
-import System
 maze = fromList $ concat $ zipWith row [0..]
   [ "."
   , "IF"
@@ -117,8 +114,6 @@ bfs moves = case asum $ won <$> moves of
 main = putStrLn $ bfs [Hex (5, 0) (1, 1) ""]
 |])
   , ("douady", [r|-- Based on https://sametwice.com/4_line_mandelbrot.
-import Base
-import System
 prec :: Int
 prec = 16384
 infixl 7 #
@@ -131,8 +126,6 @@ main = putStr $ unlines
     then '*' else ' ' | x <- [0..79]] | y <- [0..23]]
 |])
   , ("enigma", [r|-- https://crypto.stanford.edu/~blynn/haskell/enigma.html
-import Base
-import System
 wI   = ("EKMFLGDQVZNTOWYHXUSPAIBRCJ", "Q")
 wII  = ("AJDKSIRUXBLHWTMCQGZNPYFVOE", "E")
 wIII = ("BDFHJLCPRTXVZNYEIWGAKMUSQO", "V")

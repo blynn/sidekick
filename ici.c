@@ -17,8 +17,6 @@ void putchar(char n) {
   *buf = n;
   reply_data_append(buf, 1);
 }
-void pre_run(void);
-void post_run(void);
 
 void pre_run() { arg_len = arg_data_size(), arg_i = 0; }
 void post_run() { reply(); }
