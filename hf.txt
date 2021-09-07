@@ -1,4 +1,4 @@
-= Haskell Forever =
+= B.Lynnihack =
 
 [pass]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -18,7 +18,7 @@ Capability: <input id="reg_text" type="text" value="demo"> <button id="reg_butto
 </p>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Enter "demo" to enter a demo.
+Enter "demo" to enter demo.
 
 Otherwise choose an unguessable string and keep it in a safe place.
 
@@ -33,16 +33,24 @@ Welcome!
 
   1. Click `Run` to compile and run the sample program
 
-  2. Click `Load` to pick other programs to try. Some expect input.
+  2. Click `Load` and try other programs. Some expect input.
+
+  3. Load `enigma` and build a canister from source right now!
+  Click on the download button and follow the instructions beneath to deploy.
 
 Demo mode limitations: you may save programs, but so can anyone else trying the
-demo, and the name must be delimited by curly braces, for example: `{hello}`.
-Braces are automatically inserted if absent.
+demo, and unless already present, curly braces will be placed around your
+program name, for example: `{hello}`.
 
 For exclusive access to your own programs and arbitrary names, log out then
 come back with a string only you know.
 
-Saved programs persist forever, or until I take down this canister.
+Saved programs persist forever, or until I take down this canister. (Seriously,
+this is just a contest entry, and may disappear without warning. Store your
+important stuff elsewhere!)
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 [pass]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 </div>
@@ -78,7 +86,6 @@ background-color:grey;
 
 <input id="implicit" type="checkbox" checked><label for="implicit">Prepend imports for Base, System</label>
 <br>
-<label for="prog">source:</label>
 <br>
 <textarea spellcheck='false' rows='12' id="prog" name="prog"
 style='box-sizing:border-box;width:100%;'>
@@ -91,9 +98,80 @@ style='box-sizing:border-box;width:100%;'>
 <label for="out">standard output:</label>
 <br>
 <textarea spellcheck='false' readonly id='out' rows='16' style='box-sizing:border-box;width:100%;'></textarea>
+
+<p>
+<button onclick="downloadICWasm();">Download wasm canister</button>
+</p>
+<span style='cursor:pointer;' onclick='hideshow("howcan");'><span id='howcan_toggle'>[-] Hide</span> instructions for deploying canister.wasm</span>
+<div id='howcan'>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Turn your code into an IC canister!
+
+After downloading `canister.wasm`, in the same directory:
+
+------------------------------------------------------------------------
+$ cat > dfx.json <<< EOF
+{"canisters":{"enigma":{
+"type":"custom","candid":"did.not","wasm":"canister.wasm","build":""}}}
+EOF
+$ touch did.not
+$ dfx deploy
+$ dfx canister call enigma go \
+  --type raw `echo ATTACK AT DAWN | xxd -p` \
+  --output raw | xxd -r -p
+------------------------------------------------------------------------
+
+(For longer inputs, pipe the output of `xxd -p` through `tr -d '\n'` to
+avoid confusing `dfx` with newlines.)
+
+Thus we turn programs into canisters simply by declaring "canister_query" and
+"canister_update" foreign exports.
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+</div>
+
+<p><span style='cursor:pointer;' onclick='hideshow("caveats");'><span id='caveats_toggle'>[+] Show</span> language caveats</span></p>
+<div id='caveats' style='display:none;'>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This version of Haskell lacks many features, such as:
+
+  * No unary minus. Write `(0 - x)` instead.
+  * No qualified identifiers. We dumps all imported symbols into a single
+    global namespace. Work around this with names such as `mlookup`
+    instead of `Map.lookup`.
+  * Type declarations and fixity declarations can only appear at the top level.
+  * No superclasses.
+  * No seq or bang patterns.
+  * Fails to escape unprintable chars when showing them.
+  * Many missing checks.
+  * Sane error handling and reporting.
+
+There are a few niceties:
+
+  * An n-tuples desugars to nested pairs, for example, `(0, 1, 2)`
+    becomes `(0, (1, 2))`, so defining instances for pairs can automatically
+    generalize to n-tuples.
+  * Top-level fixity declarations can appear anywhere.
+  * The concatenation of multiple modules is valid input.
+  * Raw strings: write almost anything between `[r|` and `|]`.
+
+There is no implicit Prelude, but since most programs need `Base` and `System`,
+we provide a checkbox to automatically prepend these imports.
+
+They say let should not be generalized, except perhaps at the top-level, and
+we follow this advice.
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+</div>
+
 <p><span style='cursor:pointer;' onclick='hideshow("secret");'><span id='secret_toggle'>[+] Show</span> capability</span></p>
 <pre id='secret' style='display:none;'></pre>
 <button onclick="logout()">Logout</button>
+<span onclick='lightswitch();'>&#x1f4a1;</span>
 </div>
 
 <script>
@@ -160,7 +238,7 @@ function enc(s) {
   for (let i=0; i<s.length; i++) arg.push(s.charCodeAt(i));
 }
 
-var blah;
+var webhc, ichc;
 var blahInp, blahInpLen, blahInpCur;
 function setInput(s) { blahInp = s; blahInpLen = s.length; blahInpCur = 0; }
 var blahOut;
@@ -184,11 +262,27 @@ WebAssembly.instantiateStreaming(fetch('imp.wasm'), { env:
     }
   }}).then(obj => {
     document.getElementById('compiler').style.display = "inline";
-    blah = obj.instance;
+    webhc = obj.instance;
+  });
+WebAssembly.instantiateStreaming(fetch('icky.wasm'), { env:
+  { getchar: () => {
+      if (blahInpCur == blahInpLen) throw "eof";
+      blahInpCur++;
+      return blahInp.charCodeAt(blahInpCur - 1);
+    }
+  , putchar: c => blahOut.push(c)
+  , eof: () => blahInpCur == blahInpLen
+  , get_module: () => {
+      const mod = String.fromCharCode.apply(null, blahOut);
+      blahOut = [];
+      setInput("");
+      if (modmap.has(mod)) setInput(modmap.get(mod));
+    }
+  }}).then(obj => {
+    ichc = obj.instance;
   });
 
 const msg = document.getElementById("msg");
-const log_error = async function(r) { console.log(await r.text()); }
 const prog = document.getElementById("prog");
 const file = document.getElementById("file");
 function save_as() {
@@ -204,13 +298,12 @@ function save_as() {
   }
   enc(file.value);
   enc(prog.value);
-  console.log(arg);
   msg.innerText = "saving...";
   agent(canid, "call", "save", arg).then(response => {
     if (response.status == 202) msg.innerText = "";
     else {
       msg.innerText = "error: see log";
-      log_error(response);
+      response.text().then(t => { console.log(t); });
     }
   });
 }
@@ -328,7 +421,7 @@ function compile() {
   // Timeout so message is displayed. Unreliable.
   return new Promise(function(resolve, reject) {
     setTimeout(function() {
-  blah.exports.go();
+  webhc.exports.go();
   if (blahOut[0] != 0) {
     msg.innerText = "compile error: " + String.fromCharCode.apply(null, blahOut);
     reject();
@@ -339,6 +432,44 @@ function compile() {
     }, 0);
   });
 }
+
+function compileIC() {
+  msg.innerText = "compiling...";
+  stdout.value = "";
+  let implicit_imports = "";
+  if (document.getElementById("implicit").checked) implicit_imports = "import Base\nimport System\n";
+  setInput(implicit_imports + prog.value);
+  lastProg = "";
+  blahOut = [];
+  // Timeout so message is displayed. Unreliable.
+  return new Promise(function(resolve, reject) {
+    setTimeout(function() {
+  ichc.exports.go();
+  if (blahOut[0] != 0) {
+    msg.innerText = "compile error: " + String.fromCharCode.apply(null, blahOut);
+    reject();
+  } else {
+    msg.innerText = "";
+    resolve();
+  }
+    }, 0);
+  });
+}
+
+function downloadICWasm() {
+  compileIC().then(x => {
+    const blob = new Blob([new Uint8Array(blahOut)], {type: "application/octet-stream"});
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    document.body.append(a);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = "canister.wasm";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
 function run() {
   msg.innerText = "running...";
   const inp = stdin.value;
@@ -390,7 +521,7 @@ populate_modlist();
 function update_module() {
   setInput(modinp.value);
   blahOut = [];
-  blah.exports.single_module();
+  webhc.exports.single_module();
   const mod = String.fromCharCode.apply(null, blahOut);
   if (mod == "") {
     console.log("module update failed");
@@ -411,5 +542,13 @@ function setupdemo() {
 if (cap == null) document.getElementById("rego").style.display = "block";
 else showApp();
 
+const darkcss=document.createElement('style');
+darkcss.innerHTML="html{background-color:black;color:#aaaaaa;};body{background-color:black;color:#aaaaaa;}textarea{color:#e6e1dc;background-color:#232323;}pre{color:#e6e1dc;background-color:#232323;}svg{filter:invert(100%);}";
+let there_be_light = 1;
+function lightswitch() {
+there_be_light=1-there_be_light;
+if (there_be_light == 1) document.body.removeChild(darkcss);
+else document.body.appendChild(darkcss);
+}
 </script>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
