@@ -6,5 +6,6 @@ txt2html() {
 }
 txt2html index.txt
 txt2html judge.txt
+asciidoctor rps.txt
 epic/epic < sitemap > ui.c
 wcc ui.c

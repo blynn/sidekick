@@ -1,5 +1,6 @@
 /,index.html
 /judge,judge.html
+/rps,rps.html
 /puzzlescript.wasm,puzzlescript.wasm
 /agent.wasm,agent.wasm
 /imp.wasm,imp.wasm

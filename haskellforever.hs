@@ -466,6 +466,96 @@ append = do
       let s = maybe v (++v) $ mlookup k m
       writeIORef bigmap $ insert k s m
 |])
+  , ("rps", [r|-- Rock-Paper-Scissors canister.
+import Map
+
+main = putStrLn "Visit /rps to play!"
+
+global = unsafePerformIO $ newIORef worldNew
+setWorld = writeIORef global
+getWorld = readIORef global
+
+isAlphaNum c = inRange c 'a' 'z' || inRange c 'A' 'Z' || inRange c '0' '9'
+  where inRange c lo hi = lo <= c && c <= hi
+
+valid "" = False
+valid name = all (\c -> isAlphaNum c || c `elem` "_-:.") name
+
+foreign export ccall "canister_update register" icRego
+icRego = register =<< getContents
+register name
+  | valid name = do
+    World pls hist <- getWorld
+    case mlookup name pls of
+      Nothing -> do
+        let pls' = insert name playerNew pls
+        setWorld $ World pls' (("Welcome, " ++ name ++ "!"):hist)
+      _ -> putStrLn "welcome back"
+  | otherwise = putStrLn "invalid name"
+
+data World = World { players :: Map String Player, history :: [String] }
+worldNew = World mempty []
+data Player = Player { games :: Map String Int, wdl :: [Int] }
+playerNew = Player mempty [0, 0, 0]
+
+gestureName 0 = "rock"
+gestureName 1 = "paper"
+gestureName 2 = "scissors"
+
+drawMsg x y g = concat [x, " and ", y, " both choose ", gestureName g, ": draw."]
+winMsg x y gx gy = concat [x, ": ", gestureName gx, ", ", y, ": ", gestureName gy, "; ", x, " wins."]
+
+moveWorld x y gx (World pls hist) = do
+  when (gx < 0 || gx > 2) $ Left "no such gesture"
+  plx <- maybe (Left $ "unregistered: " ++ x) Right $ mlookup x pls
+  when (x == y) $ Left "congratulations. you played yourself."
+  ply <- maybe (Left $ "unregistered: " ++ y) Right $ mlookup y pls
+  let
+    apply dx dy m = Right $ World
+      ( insert x plx { games = delete y $ games plx, wdl = zipWith (+) dx $ wdl plx }
+      $ insert y ply { games = delete x $ games ply, wdl = zipWith (+) dy $ wdl ply } pls
+      ) $ m:hist
+  case mlookup x $ games ply of
+    Just gy
+      | gx == gy -> apply [0, 1, 0] [0, 1, 0] $ drawMsg x y gx
+      | gx == mod (gy + 1) 3 -> apply [1, 0, 0] [0, 0, 1] $ winMsg x y gx gy
+      | gy == mod (gx + 1) 3 -> apply [0, 0, 1] [1, 0, 0] $ winMsg y x gy gx
+    _ -> Right $ World (insert x plx { games = insert y gx $ games plx } pls) hist
+
+foreign export ccall "canister_update move" icMove
+icMove = do
+  [x, y, [g]] <- words <$> getContents
+  move x y $ ord g - ord '0'
+move x y gx = do
+  esw <- moveWorld x y gx <$> getWorld
+  case esw of
+    Left e -> error e
+    Right w -> setWorld w
+
+foreign export ccall "canister_query oppo" icOppo
+icOppo = showOpps =<< getContents
+showOpps x = do
+  World pls _ <- getWorld
+  case mlookup x pls of
+    Nothing -> pure ()
+    Just plx -> do
+      mapM_ (\(y, Player ygames wdl) -> do
+        let idY = concat ["\"pl_", y, "\""]
+        putStr $ concat $ if x == y then ["<tr><td><b>", y, "</b></td><td>"]
+          else ["<tr id=", idY, " onclick='opp(", idY, ");'><td>", y, "</td><td>"]
+        case mlookup x ygames of
+          Just _ -> putStr "challenges you!"
+          Nothing -> case mlookup y $ games plx of
+            Nothing -> pure ()
+            Just g -> putStr $ "will get: " ++ gestureName g
+        putStr $ concat ["</td><td>", show wdl, "</td></tr>"]
+        ) $ assocs pls
+
+foreign export ccall "canister_query log" icLog
+icLog = do
+  World _ hist <- getWorld
+  mapM_ putStrLn $ reverse hist
+|])
   , ("webpage", [r|-- When run here, prints a Candid-encoded HTTP response.
 -- When compiled as a canister, serves content on `...raw.ic0.app`.
 html = "Hello, World!"

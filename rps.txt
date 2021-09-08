@@ -1,0 +1,190 @@
+= World Wide Dispute Resolver =
+:nofooter:
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+<style>
+tbody tr:hover td { background-color: #FFFF00; }
+tbody tr.selected td { background-color: #FFaa80; }
+</style>
+
+<div id="arena">
+<p>No auto-refresh. You may need to reload to see changes.</p>
+<p>Choose opponent:</p>
+<table><thead><tr>
+<th>Name</th><th>Status</th><th>Wins,Draws,Losses</th>
+</tr></thead>
+<tbody id="opps">
+</tbody></table>
+
+<p>
+Choose gesture:
+</p>
+
+<table><tbody>
+<tr id="gest0" onclick="gesture(0);"><td>rock</td></tr>
+<tr id="gest1" onclick="gesture(1);"><td>paper</td></tr>
+<tr id="gest2" onclick="gesture(2);"><td>scissors</td></tr>
+</tbody></table>
+
+<p>
+<button id="go_button" onclick='go();'>Go!</button>
+</p>
+<pre id="log"></pre>
+</div>
+
+<p>
+<div id="msg"></div>
+</p>
+
+<div id="rego">
+<p>
+Who are you?  <input id="reg_text" type="text"> <button id="reg_button" onclick="rego();">Go!</button>
+</p>
+<p>
+[Only accepts alphanumeric characters and "-_.:".]
+</p>
+</div>
+
+<script>
+"use strict";
+
+const agentMod = WebAssembly.compileStreaming(fetch('agent.wasm'));
+
+async function cborReplyArg(response) {
+  const cbor = await (await response.blob()).arrayBuffer();
+  // Homes in on `CBOR.decode(cbor).reply.arg` by searching for encoded "arg":
+  // 0x63 0x61 0x72 0x67
+  const arr = new Uint8Array(cbor);
+  let i = 0;
+  while (arr[i] != 0x63
+      || arr[i+1] != 0x61 || arr[i+2] != 0x72 || arr[i+3] != 0x67) {
+    i++;
+    if (i == arr.length) {
+      console.log("Error: arg not found.");
+      return "";
+    }
+  }
+  i+=4;
+  // Decodes a CBOR count.
+  let count = arr[i] & 0x1f;
+  i++;
+  switch (count) {
+    case 24: count = arr[i]; i+=1; break;
+    case 25: count = 256*arr[i] + arr[i+1]; i+=2; break;
+    case 26: count = 65536*arr[i] + 256*arr[i+1] + arr[i+2]; i+=3; break;
+  }
+  return arr.slice(i,i+count);
+};
+
+// The `arg` parameter is a buffer, the others are strings.
+async function agent(canister_id, request_type, method, arg) {
+  function teen(s) { return (new TextEncoder()).encode(s); }
+  let out = [];
+  const args = [teen(canister_id), teen(request_type), teen(method), arg];
+  const x = await WebAssembly.instantiate(await agentMod, {env:
+    { putchar: c      => out.push(c)
+    , argc   : ()     => args.length
+    , argvlen: n      => args[n].length
+    , argvat : (n, k) => args[n][k]
+    , now    : ()     => Date.now()/1000
+    }});
+  await x.exports.go();
+  const response = await fetch(
+    "https://ic0.app/api/v2/canister/" + canister_id + "/" + request_type,
+    // "http://localhost:8000/api/v2/canister/" + canister_id + "/" + request_type,
+    { method: "POST"
+    , headers: { "Content-Type": "application/cbor" }
+    , body: Uint8Array.from(out)
+    }
+  );
+
+  if (response.status == 202) {
+    console.log("202");
+  } else if (response.status == 200) {
+    return await cborReplyArg(response);
+  } else {
+    response.text().then(t => { console.log(t); });
+  }
+};
+
+var whoami;
+var adversary;
+var gest;
+
+const canid = "7ha3m-qaaaa-aaaae-aaffa-cai";
+
+function reset() {
+  adversary = "";
+  gest = -1;
+  document.getElementById("go_button").disabled = true;
+}
+
+function refresh() {
+  agent(canid, "query", "log", new Uint8Array([])).then(arg => {
+    document.getElementById("log").innerText = (new TextDecoder()).decode(arg); });
+
+  agent(canid, "query", "oppo", new TextEncoder().encode(whoami)).then(arg => {
+if (arg == "") {
+  document.getElementById("arena").style.display = "none";
+  document.getElementById("msg").innerHTML = "Registering player. Please wait...";
+  setTimeout(function(){ document.getElementById("arena").style.display = "block"; document.getElementById("msg").innerHTML = ""; refresh(); }, 5678);
+} else document.getElementById("opps").innerHTML = (new TextDecoder()).decode(arg); });
+}
+
+function opp(y) {
+  if (adversary != "") document.getElementById(adversary).className = "";
+  document.getElementById(y).className = "selected";
+  adversary = y;
+  if (gest != -1) document.getElementById("go_button").disabled = false;
+}
+
+function gesture(g) {
+  if (gest != -1) document.getElementById("gest" + gest).className = "";
+  gest = g;
+  document.getElementById("gest" + gest).className = "selected";
+  if (adversary != "") document.getElementById("go_button").disabled = false;
+}
+
+function go() {
+  if (adversary != "" && gest != -1) {
+    agent(canid, "call", "move", new TextEncoder().encode(whoami + " " + adversary.replace("pl_", "") + " " + gest));
+    document.getElementById("gest" + gest).className = "";
+    document.getElementById(adversary).className = "";
+    reset();
+    document.getElementById("msg").innerHTML = "sending move...";
+    setTimeout(function(){ document.getElementById("msg").innerHTML = ""; refresh(); }, 5678);
+  }
+}
+
+function play() {
+  document.getElementById("rego").style.display = "none";
+  agent(canid, "call", "register", new TextEncoder().encode(whoami));
+  reset();
+  refresh();
+}
+
+function is_valid(s) {
+  return s.match(/^[\w:.-]+$/) != null;
+}
+
+function rego() {
+  const s = document.getElementById('reg_text').value;
+  if (!is_valid(s)) {
+    alert("invalid ID");
+    return;
+  }
+  localStorage.setItem('whoami', s);
+  whoami = s;
+  document.getElementById("arena").style.display = "block";
+  play();
+}
+
+whoami = localStorage.getItem('whoami');
+if (whoami == null || !is_valid(whoami)) {
+  document.getElementById("arena").style.display = "none";
+} else play()
+</script>
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
