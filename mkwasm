@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+wcc() { clang --target=wasm32 -O3 -ffreestanding -c $*; }
+wld() { wasm-ld-11 --export-dynamic --allow-undefined --no-entry --global-base=0 --initial-memory=41943040 $*; }
+cat Base.hs Map.hs System.hs haskellforever.hs | ~/z/boot/precisely wasm pre-post-run > haskellforever.c
+wcc haskellforever.c
+wld haskellforever.o ici.o ui.o -o blynnihack.wasm

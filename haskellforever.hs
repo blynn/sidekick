@@ -283,6 +283,7 @@ foreign export ccall "canister_query go" main  -- Build a canister out of this!
 main = interact $ concatMap show . pleaseExplain
 |])
   , ("candid field hash", [r|-- Candid record field hash
+-- Example input: headers
 c2w :: Char -> Word
 c2w = fromIntegral . ord
 main = interact \s -> show $ sum $ zipWith (*) (c2w <$> reverse s) $ iterate (223*) 1
@@ -437,6 +438,15 @@ ls = do
   putStr $ leb (length ks) ""
   mapM_ lenc ks
 
+foreign export ccall "canister_query cat" cat
+cat = do
+  s <- getContents
+  case getCharserEof str s of
+    Left e -> putStr e
+    Right k -> do
+      m <- readIORef bigmap
+      putStr $ maybe "" id $ mlookup k m
+
 foreign export ccall "canister_update save" save
 save = do
   s <- getContents
@@ -446,14 +456,15 @@ save = do
       m <- readIORef bigmap
       writeIORef bigmap $ insert k v m
 
-foreign export ccall "canister_query cat" cat
-cat = do
+foreign export ccall "canister_update append" append
+append = do
   s <- getContents
-  case getCharserEof str s of
+  case getCharserEof ((,) <$> str <*> str) s of
     Left e -> putStr e
-    Right k -> do
+    Right (k, v) -> do
       m <- readIORef bigmap
-      putStr $ maybe "" id $ mlookup k m
+      let s = maybe v (++v) $ mlookup k m
+      writeIORef bigmap $ insert k s m
 |])
   , ("webpage", [r|-- When run here, prints a Candid-encoded HTTP response.
 -- When compiled as a canister, serves content on `...raw.ic0.app`.

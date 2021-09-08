@@ -1,0 +1,416 @@
+= A PuzzleScript experiment =
+
+Controls:
+
+  * Move: arrow keys.
+  * Restart: R
+  * Undo: Z
+  * Quit: Q or Escape.
+
+The canister storing these puzzles was link:..[built with B.Lynnihack]!
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<p>
+<button id='run'><b>Play</b></button>
+<button onclick="load()">Load</button>
+<button onclick="save_as()">Save As</button>
+<input type="text" id="file" value="noname">
+<span id='out'></span>
+</p>
+
+<style>#presets {
+position:absolute;
+background-color:white;
+border:1px solid grey;
+padding:0.5em;
+display:none;
+}#presets div:hover{
+background-color:grey;
+}
+</style>
+<div id='presets'></div>
+
+<div>
+<textarea spellcheck='false' rows='40' id="prog" name="prog"
+style='box-sizing:border-box;width:100%;'></textarea>
+</div>
+
+<script>
+"use strict";
+const stdout = document.getElementById("out");
+const agentMod = WebAssembly.compileStreaming(fetch('agent.wasm'));
+async function agent(canister_id, request_type, method, arg) {
+  function teen(s) { return (new TextEncoder()).encode(s); }
+  let out = [];
+  const args = [teen(canister_id), teen(request_type), teen(method), arg];
+  const x = await WebAssembly.instantiate(await agentMod, {env:
+    { putchar: c      => out.push(c)
+    , argc   : ()     => args.length
+    , argvlen: n      => args[n].length
+    , argvat : (n, k) => args[n][k]
+    , now    : ()     => Date.now()/1000
+    }});
+  await x.exports.go();
+  return await fetch(
+    "https://ic0.app/api/v2/canister/" + canister_id + "/" + request_type,
+    // "http://localhost:8000/api/v2/canister/" + canister_id + "/" + request_type,
+    { method: "POST"
+    , headers: { "Content-Type": "application/cbor" }
+    , body: Uint8Array.from(out)
+    }
+  );
+};
+async function cborReplyArg(response) {
+  const cbor = await (await response.blob()).arrayBuffer();
+  // Homes in on `CBOR.decode(cbor).reply.arg` by searching for encoded "arg":
+  // 0x63 0x61 0x72 0x67
+  const arr = new Uint8Array(cbor);
+  let i = 0;
+  while (arr[i] != 0x63
+      || arr[i+1] != 0x61 || arr[i+2] != 0x72 || arr[i+3] != 0x67) {
+    i++;
+    if (i == arr.length) {
+      console.log("Error: arg not found.");
+      console.log(buf2hex(cbor));
+      return "";
+    }
+  }
+  i+=4;
+  // Decodes a CBOR count.
+  let count = arr[i] & 0x1f;
+  i++;
+  switch (count) {
+    case 24: count = arr[i]; i+=1; break;
+    case 25: count = 256*arr[i] + arr[i+1]; i+=2; break;
+    case 26: count = 65536*arr[i] + 256*arr[i+1] + arr[i+2]; i+=3; break;
+  }
+  return arr.slice(i,i+count);
+};
+var parse_me;
+var parse_i;
+function unleb(n, b) {
+  if (parse_i == parse_me.length) {
+    console.log("unleb: EOF");
+    return;
+  }
+  const k = parse_me[parse_i++];
+  if (k <= 127) return n + k*b;
+  else return unleb(n + (k - 128)*b, b*128);
+}
+function take(n) {
+  if (parse_i + n > parse_me.length) {
+    console.log("take: EOF");
+    return;
+  }
+  const r = parse_me.slice(parse_i, parse_i + n);
+  parse_i += n;
+  return String.fromCharCode.apply(null, r);
+}
+let arg = [];
+function leb(n) {
+  if (n <= 127) arg.push(n);
+  else {
+    arg.push(n%128 + 128);
+    leb(n>>7);
+  }
+}
+function enc(s) {
+  leb(s.length);
+  for (let i=0; i<s.length; i++) arg.push(s.charCodeAt(i));
+}
+const canid = "aq6z7-uyaaa-aaaae-aaaqa-cai";
+const presets = document.getElementById('presets');
+let load_menu_toggle = 0;
+function load() {
+  while (presets.firstChild) presets.removeChild(presets.firstChild);
+  presets.style.display = "none";
+  if (load_menu_toggle == 1) {
+    load_menu_toggle = 0;
+    return;
+  }
+  stdout.innerText = "fetching...";
+  agent(canid, "query", "ls", []).then(response => {
+    stdout.innerText = "";
+    if (response.status == 200) {
+      cborReplyArg(response).then(out => {
+        parse_me = out;
+        parse_i = 0;
+        let n = unleb(0, 1);
+        if (n == 0) {
+          alert("no files");
+          return;
+        }
+        load_menu_toggle = 1;
+        presets.style.display = "block";
+        while (n > 0) {
+          const s = take(unleb(0, 1));
+          const x = document.createElement('div');
+          x.innerText = s;
+          x.addEventListener("click", () => cat_file(s));
+          presets.appendChild(x);
+          n--;
+        }
+      });
+    } else {
+      response.text().then(t => { console.log(t); });
+    }
+  });
+}
+const prog = document.getElementById("prog");
+const file = document.getElementById("file");
+function cat_file(s) {
+  stdout.innerText = "loading..."
+  presets.style.display = "none";
+  load_menu_toggle = 0;
+  arg = [];
+  enc(s);
+  agent(canid, "query", "cat", arg).then(response => {
+    if (response.status == 200) {
+      cborReplyArg(response).then(out => {
+        stdout.innerText = "";
+        prog.value = String.fromCharCode.apply(null, out);
+        file.value = s;
+        if (first_flag == 1) {
+          first_flag = 0;
+          run();
+        }
+      });
+    } else {
+      response.text().then(t => { console.log(t); });
+    }
+  });
+}
+function save_as() {
+  arg = [];
+  if (file.value.charAt(0) != "{") {
+    file.value = "{" + file.value;
+  }
+  if (file.value.charAt(file.value.length - 1) != "}") {
+    file.value = file.value + "}";
+  }
+  enc(file.value);
+  enc(prog.value);
+  stdout.innerText = "saving...";
+  agent(canid, "call", "save", arg).then(response => {
+    if (response.status == 202) stdout.innerText = "";
+    else {
+      stdout.innerText = "error: see log";
+      response.text().then(t => { console.log(t); });
+    }
+  });
+}
+
+const playground = document.createElement('body');
+const can = document.createElement('canvas');
+playground.appendChild(can);
+playground.onkeydown = handleKey;
+playground.style.margin = 0;
+playground.style.overflow = 'hidden';
+playground.style.backgroundColor = 'black';
+
+var e;
+var is_playing = 0;
+var dpr = window.devicePixelRatio;
+var topbarH = 64 * dpr;
+var undoX = 32 * dpr;
+var quitX;
+var resetX;
+var topbarY = 32 * dpr;
+var buttonR = 24 * dpr;
+
+function resize() {
+  can.style.width = "100vw";
+  can.style.height = "100vh";
+  can.width = can.clientWidth * dpr;
+  can.height = can.clientHeight * dpr;
+  quitX = can.width - 32 * dpr;
+  resetX = can.width / 2;
+  if (!is_playing) return;
+  e.redraw();
+  buttons();
+}
+var ctx = can.getContext("2d");
+var sprites = []
+function newTile() {
+  var t = document.createElement('canvas');
+  t.height = 80;
+  t.width = 80;
+  return t;
+}
+var cur = newTile();
+
+function boxy(n, x, y, c) {
+  var ctx = cur.getContext("2d");
+  var k = 80 / n;
+  var r = c >> 16;
+  var g = (c >> 8) % 256;
+  var b = c % 256;
+  ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+  ctx.fillRect(x*k, y*k, k, k);
+}
+
+function pc(x) { stdout.innerText += String.fromCharCode(x); }
+
+function cheese() {
+  sprites.push(cur);
+  cur = newTile();
+}
+
+var sz, ox, oy;
+
+function dimension(w, h) {
+  var a = can.width / w;
+  var b = (can.height - topbarH) / h;
+  if (a < b) {
+    sz = a;
+  } else {
+    sz = b;
+  }
+  ox = (can.width - w * sz) / 2;
+  oy = topbarH + (can.height - topbarH - h * sz) / 2;
+}
+
+function blit(i, x, y) { ctx.drawImage(sprites[i], ox + x * sz, oy + y * sz, sz, sz); }
+
+function buttons() {
+  ctx.lineWidth = 5 * dpr;
+  ctx.strokeStyle = 'grey';
+  ctx.fillStyle = 'grey';
+  ctx.beginPath();
+  ctx.arc(undoX, topbarY, buttonR, 0, 2 * Math.PI, false);
+  ctx.stroke();
+
+  var rr = buttonR * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(undoX - rr, topbarY);
+  ctx.lineTo(undoX + rr/2, topbarY - rr * 0.866);
+  ctx.lineTo(undoX + rr/2, topbarY + rr * 0.866);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(quitX, topbarY, buttonR, 0, 2 * Math.PI, false);
+  ctx.moveTo(quitX - rr * 0.707, topbarY - rr * 0.707);
+  ctx.lineTo(quitX + rr * 0.707, topbarY + rr * 0.707);
+  ctx.moveTo(quitX + rr * 0.707, topbarY - rr * 0.707);
+  ctx.lineTo(quitX - rr * 0.707, topbarY + rr * 0.707);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(resetX, topbarY, buttonR, 0, 2 * Math.PI, false);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(resetX, topbarY, buttonR / 2, Math.PI, -Math.PI / 2, true);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(resetX, topbarY - buttonR * 0.8);
+  ctx.lineTo(resetX, topbarY - buttonR * 0.2);
+  ctx.lineTo(resetX - buttonR * 0.3, topbarY - buttonR * 0.5);
+  ctx.fillStyle = 'grey';
+  ctx.fill();
+}
+
+const origbody = document.body;
+function handleKey(event) {
+  if (!is_playing) return;
+  if (event.keyCode == 27 || event.keyCode == 81) {
+    document.body = origbody;
+    window.onresize = null;
+  }
+  e.keydown(event.keyCode);
+  // event.preventDefault();
+}
+
+function won() {
+  is_playing = 0;
+  setTimeout(function(){
+    ctx.clearRect(0, 0, can.width, can.height);
+    e.levelup();
+    buttons();
+    is_playing = 1;
+  }, 500);
+}
+
+var inp, inpLen, inpCur;
+
+function gc() {
+  if (inpCur == inpLen) return -1;
+  inpCur++;
+  return inp.charCodeAt(inpCur - 1);
+}
+
+function run() {
+  ctx.clearRect(0, 0, can.width, can.height);
+  inp = prog.value;
+  stdout.innerText = "";
+  inpLen = inp.length, inpCur = 0;
+  sprites = [];
+  e.play();
+  is_playing = 1;
+  document.body = playground;
+  resize();
+  window.onresize = resize;
+}
+
+let first_flag = 1;
+WebAssembly.instantiateStreaming(fetch('puzzlescript.wasm'), {
+    env:{ pixel:boxy, blit:blit, cheese:cheese,
+      getchar:gc, putchar:pc,
+      dim:dimension, won:won }
+  }).then(obj => {
+  e = obj.instance.exports;
+  document.getElementById("run").onclick = run;
+  cat_file("Sokoban HD");
+});
+
+function handleXY(xRaw, yRaw) {
+  if (!is_playing) return;
+  const rect = can.getBoundingClientRect()
+  const x = (xRaw - rect.left) * dpr;
+  const y = (yRaw - rect.top) * dpr;
+  function inButton(bx) { return (x - bx)**2 + (y - topbarY)**2 < buttonR**2; }
+  if (y > topbarH) {
+    e.click(Math.floor( (x - ox) / sz), Math.floor((y - oy) / sz) );
+  } else if ( inButton(undoX) ) {
+    e.undo();
+  } else if ( inButton(resetX) ) {
+    e.restart();
+  } else if ( inButton(quitX) ) {
+    document.body = origbody;
+    window.onresize = null;
+  }
+}
+
+can.addEventListener('touchstart', function(evt) {
+  handleXY(evt.touches[0].clientX, evt.touches[0].clientY);
+  evt.stopPropagation();
+  evt.preventDefault();
+});
+
+can.addEventListener('click', function(evt) {
+  handleXY(evt.clientX, evt.clientY);
+});
+
+function hideshow(s) {
+  var x = document.getElementById(s);
+  var xt = document.getElementById(s + "_toggle");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+    xt.innerHTML = "[-] Hide"
+  } else {
+    x.style.display = "none";
+    xt.innerHTML = "[+] Show"
+  }
+}
+</script>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+I had some ideas on how to improve https://www.puzzlescript.net/ so I
+tried them out: https://crypto.stanford.edu/~blynn/play/puzzlescript.html.
+This demo is adapted from that experiment.
+
+Incidentally, this PuzzleScript interpreter was built with the same compiler,
+but using the C backend followed by running Clang to produce a wasm binary.
+This is because I have yet to support arbitrary foreign imports on the wasm
+backend of my compiler.

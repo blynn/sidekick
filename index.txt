@@ -13,6 +13,14 @@ include::System.hs[]
 </textarea>
 
 <div id="rego" style="display:none;">
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+*Judges, please start at link:judge[this puzzling introduction]*.
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+[pass]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 <p>
 Capability: <input id="reg_text" type="text" value="demo"> <button id="reg_button" onclick="rego();">&lambda;</button>
 </p>
@@ -56,7 +64,7 @@ important stuff elsewhere!)
 </div>
 
 <div id="app" style="display:none;">
-<span id='compiler' style='display:none;'><button onclick="go()"><b>Run!</b></button></span>
+<button id="run_button" onclick="go()" disabled><b>Run!</b></button>
 <button onclick="load()">Load</button>
 <button onclick="save_as()">Save As</button>
 <input type="text" id="file" value="noname">
@@ -87,7 +95,7 @@ background-color:grey;
 <input id="implicit" type="checkbox" checked><label for="implicit">Prepend imports for Base, System</label>
 <br>
 <br>
-<textarea spellcheck='false' rows='12' id="prog" name="prog"
+<textarea spellcheck='false' rows='16' id="prog" name="prog"
 style='box-sizing:border-box;width:100%;'>
 </textarea>
 <br>
@@ -192,8 +200,8 @@ async function agent(canister_id, request_type, method, arg) {
     }});
   await x.exports.go();
   return await fetch(
-    // "https://ic0.app/api/v2/canister/" + canister_id + "/" + request_type,
-    "http://localhost:8000/api/v2/canister/" + canister_id + "/" + request_type,
+    "https://ic0.app/api/v2/canister/" + canister_id + "/" + request_type,
+    // "http://localhost:8000/api/v2/canister/" + canister_id + "/" + request_type,
     { method: "POST"
     , headers: { "Content-Type": "application/cbor" }
     , body: Uint8Array.from(out)
@@ -217,13 +225,13 @@ function rego() {
 }
 
 function logout() {
-  localStorage.clear();
+  localStorage.removeItem('cap');
   document.getElementById("rego").style.display = "block";
   document.getElementById("app").style.display = "none";
   document.getElementById("demoblurb").style.display = "none";
 }
 
-const canid = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+const canid = "ffgig-jyaaa-aaaae-aaaoa-cai";
 
 let arg = [];
 function leb(n) {
@@ -261,7 +269,7 @@ WebAssembly.instantiateStreaming(fetch('imp.wasm'), { env:
       if (modmap.has(mod)) setInput(modmap.get(mod));
     }
   }}).then(obj => {
-    document.getElementById('compiler').style.display = "inline";
+    document.getElementById('run_button').disabled = false;
     webhc = obj.instance;
   });
 WebAssembly.instantiateStreaming(fetch('icky.wasm'), { env:
@@ -352,12 +360,14 @@ function take(n) {
   return String.fromCharCode.apply(null, r);
 }
 function cat_file(s) {
+  msg.innerText = "loading...";
   presets.style.display = "none";
   load_menu_toggle = 0;
   arg = [];
   enc(cap);
   enc(s);
   agent(canid, "query", "cat", arg).then(response => {
+    msg.innerText = "";
     if (response.status == 200) {
       cborReplyArg(response).then(out => {
         prog.value = String.fromCharCode.apply(null, out);
@@ -369,6 +379,7 @@ function cat_file(s) {
   });
 }
 function load() {
+  msg.innerText = "fetching...";
   while (presets.firstChild) presets.removeChild(presets.firstChild);
   presets.style.display = "none";
   if (load_menu_toggle == 1) {
@@ -378,7 +389,7 @@ function load() {
   arg = [];
   enc(cap);
   agent(canid, "query", "ls", arg).then(response => {
-
+    msg.innerText = "";
     if (response.status == 200) {
       cborReplyArg(response).then(out => {
         parse_me = out;

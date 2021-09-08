@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 wcc() { clang --target=wasm32 -O3 -ffreestanding -c $*; }
-(cat header; asciidoc -a 'newline=\n' -b html5 -s -o - index.txt; cat footer) > index.html
+txt2html() {
+(cat header; asciidoc -a 'newline=\n' -b html5 -s -o - $1; cat footer) > ${1%.*}.html
+}
+txt2html index.txt
+txt2html judge.txt
 epic/epic < sitemap > ui.c
 wcc ui.c

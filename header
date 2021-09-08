@@ -2,9 +2,10 @@
 <title>B.Lynnihack</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.png" type="image/png">
 <link href='https://fonts.googleapis.com/css?family=Open+Sans%7CInconsolata%7CMuli' rel='stylesheet' type='text/css'>
 <style>
-html { background-color: white; color: black; }
+/* html { background-color: white; color: black; } */
 body { font-family: 'Open Sans', sans-serif; }
 a { text-decoration: none; color: #3366cc; }
 a:visited { color: gray; }
