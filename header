@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang='en'><head>
+<title>B.Lynnihack</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href='https://fonts.googleapis.com/css?family=Open+Sans%7CInconsolata%7CMuli' rel='stylesheet' type='text/css'>
+<style>
+html { background-color: white; color: black; }
+body { font-family: 'Open Sans', sans-serif; }
+a { text-decoration: none; color: #3366cc; }
+a:visited { color: gray; }
+a:hover { text-decoration: underline; color: #3399ff; }
+a:visited:hover { text-decoration: underline; color: #3399ff; }
+h1, h2, h3, h4, h5, h6 { font-family: 'Muli', sans-serif; font-weight: 500; margin: 0; }
+pre, textarea, code, kbd, samp, .monospaced { font-family: 'Inconsolata', monospace; }
+textarea { font-size:110%; }
+pre {
+  margin: 0;
+  margin-bottom: 1em;
+  padding: 2px;
+  border: 1px dotted #aaaaaa;
+  background-color: #f9f9f9;
+  white-space: pre-wrap;
+}
+img { border: 0; }
+ul { list-style-type: square; }
+@media (min-width: 640px) {
+  body { max-width: 40em; margin: 0 auto; }
+  .main { padding-left: 1em; padding-right: 1em; }
+}
+</style>
+</head><body>

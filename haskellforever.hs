@@ -1,3 +1,4 @@
+-- Store Haskell code forever.
 module Main where
 import Base
 import Map

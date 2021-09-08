@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+wcc() { clang --target=wasm32 -O3 -ffreestanding -c $*; }
+(cat header; asciidoc -a 'newline=\n' -b html5 -s -o - index.txt; cat footer) > index.html
+epic/epic < sitemap > ui.c
+wcc ui.c
