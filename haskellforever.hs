@@ -310,6 +310,11 @@ queens sz = go sz where
   go n = [q:b | b <- go (n - 1), q <- [1..sz], safe q b]
 main = print $ queens 8
 |])
+  , ("fibs", [r|-- Base module contains arbitrary precision routines.
+fibs :: [Integer]
+fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+main = print $ take 100 fibs
+|])
   , ("hex maze", [r|-- https://fivethirtyeight.com/features/can-you-escape-this-enchanted-maze/
 import Map
 maze = fromList $ concat $ zipWith row [0..]
@@ -466,7 +471,7 @@ append = do
       let s = maybe v (++v) $ mlookup k m
       writeIORef bigmap $ insert k s m
 |])
-  , ("rps", [r|-- Rock-Paper-Scissors canister.
+  , ("rock paper scissors", [r|-- Rock-Paper-Scissors canister.
 import Map
 
 main = putStrLn "Visit /rps to play!"

@@ -43,12 +43,12 @@ Welcome!
 
   2. Click `Load` and try other programs. Some expect input.
 
-  3. Load `enigma` and build a canister from source right now!
-  Click on the download button and follow the instructions beneath to deploy.
+  3. Build a canister from source right now! Follow the instructions beneath
+  the download button.
 
-Demo mode limitations: you may save programs, but so can anyone else trying the
-demo, and unless already present, curly braces will be placed around your
-program name, for example: `{hello}`.
+Demo mode limitations: users may stomp over each other's files when saving,
+though not over the preset examples because unless already present, curly
+braces will be placed around a program name, for example: `{hello}`.
 
 For exclusive access to your own programs and arbitrary names, log out then
 come back with a string only you know.
@@ -116,10 +116,11 @@ style='box-sizing:border-box;width:100%;'>
 
 Turn your code into an IC canister!
 
-After downloading `canister.wasm`, in the same directory:
+Load `enigma` and click the download button above. Then in the same directory
+as `canister.wasm`:
 
 ------------------------------------------------------------------------
-$ cat > dfx.json <<< EOF
+$ cat > dfx.json << EOF
 {"canisters":{"enigma":{
 "type":"custom","candid":"did.not","wasm":"canister.wasm","build":""}}}
 EOF
@@ -360,12 +361,12 @@ function take(n) {
   return String.fromCharCode.apply(null, r);
 }
 function cat_file(s) {
-  msg.innerText = "loading...";
   presets.style.display = "none";
   load_menu_toggle = 0;
   arg = [];
   enc(cap);
   enc(s);
+  msg.innerText = "loading...";
   agent(canid, "query", "cat", arg).then(response => {
     msg.innerText = "";
     if (response.status == 200) {
@@ -379,7 +380,6 @@ function cat_file(s) {
   });
 }
 function load() {
-  msg.innerText = "fetching...";
   while (presets.firstChild) presets.removeChild(presets.firstChild);
   presets.style.display = "none";
   if (load_menu_toggle == 1) {
@@ -388,6 +388,7 @@ function load() {
   }
   arg = [];
   enc(cap);
+  msg.innerText = "fetching...";
   agent(canid, "query", "ls", arg).then(response => {
     msg.innerText = "";
     if (response.status == 200) {

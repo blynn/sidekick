@@ -410,7 +410,6 @@ I had some ideas on how to improve https://www.puzzlescript.net/ so I
 tried them out: https://crypto.stanford.edu/~blynn/play/puzzlescript.html.
 This demo is adapted from that experiment.
 
-Incidentally, this PuzzleScript interpreter was built with the same compiler,
-but using the C backend followed by running Clang to produce a wasm binary.
-This is because I have yet to support arbitrary foreign imports on the wasm
-backend of my compiler.
+Incidentally, this PuzzleScript interpreter could also be built by B.Lynnihack
+if my compiler supported arbitrary foreign imports for the wasm backend.
+Instead I had to use the C backend and produced a wasm binary with Clang.
