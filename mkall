@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+wcc() { clang --target=wasm32 -O3 -ffreestanding -c $*; }
+wld() { wasm-ld-11 --export-dynamic --allow-undefined --no-entry --global-base=0 --initial-memory=41943040 $*; }
+wcc ici.c
+git clone https://github.com/blynn/compiler
+wget https://fxa77-fiaaa-aaaae-aaana-cai.raw.ic0.app/agent.hs
+git clone https://fxa77-fiaaa-aaaae-aaana-cai.raw.ic0.app/epic.git
+wget https://crypto.stanford.edu/~blynn/play/puzzlescript.wasm
+
+cd compiler
+make imp.wasm
+cp inn/BasePrecisely.hs ../Base.hs
+cp inn/Map1.hs ../Map.hs
+cp inn/SystemWasm.hs ../System.hs
+cp imp.wasm ..
+
+cat inn/BasePrecisely.hs inn/SystemWasm.hs | ./precisely warts no-import pre-post-run > warts.c
+wcc warts.c
+wld warts.o ../ici.o -o warts.wasm
+make imp.wasm
+cp imp.wasm ../icky.wasm
+
+cd ..
+cat Base.hs agent.hs | compiler/precisely wasm > agent.c
+wcc agent.c
+wld agent.o -o agent.wasm
+
+./mkui
+./mkwasm

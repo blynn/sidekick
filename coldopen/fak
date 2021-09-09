@@ -1,0 +1,210 @@
+== title Block Faker
+== author Droqen
+== homepage www.droqen.com
+== https://droqen.itch.io/block-faker
+
+== require_player_movement
+== key_repeat_interval 0.12
+
+== background_color white
+== text_color black
+
+== color_palette c64
+
+========
+OBJECTS
+========
+
+Background
+White
+
+Grille
+gray
+0...0
+.0.0.
+..0..
+.0.0.
+0...0
+
+EndPoint
+Green
+
+Player
+Black
+00000
+00000
+0.0.0
+00000
+00000
+
+Wall
+Gray
+
+WallBlock
+Black Grey
+01111
+01111
+01111
+01111
+00001
+
+BlueBlock
+Blue
+00000
+00.00
+0.0.0
+00.00
+00000
+
+GreenBlock
+LightGreen
+00000
+00000
+00.00
+00000
+00000
+
+PinkBlock
+Red
+00000
+00.00
+0...0
+00.00
+00000
+
+PurpleBlock
+Purple
+00000
+0...0
+0.0.0
+0...0
+00000
+
+OrangeBlock
+Orange
+00000
+0.0.0
+00000
+0.0.0
+00000
+
+
+=======
+LEGEND
+=======
+
+Block = PinkBlock or BlueBlock or PurpleBlock or OrangeBlock or GreenBlock
+Moveable = Player or Block
+Immovable = Wall or WallBlock
+
+. = Background
+# = Wall
+@ = WallBlock
+P = Player
+B = BlueBlock
+G = GreenBLock
+K = PinkBlock
+R = PurpleBlock
+O = OrangeBlock
+E = EndPoint
+x = Grille
+H = Grille and Player
+
+
+== Player, Wall, WallBlock, PinkBlock, BlueBlock, PurpleBlock, OrangeBlock, GreenBlock
+
+======
+RULES
+======
+
+[ >  Moveable | Moveable ] -> [ > Moveable | > Moveable ]
+[ > Block | Grille ] -> [ Block | Grille ]
+
+[ > Moveable | Immovable ] -> [ Moveable | Immovable ]
+
+[ > Moveable | no Moveable ] -> [ | Moveable ]
+
+[ PinkBlock | PinkBlock | PinkBlock ] -> [ | | ]
+[ BlueBlock | BlueBlock | BlueBlock ] -> [ | | ]
+[ PurpleBlock | PurpleBlock | PurpleBlock ] -> [ | | ]
+[ OrangeBlock | OrangeBlock | OrangeBlock ] -> [ | | ]
+[ GreenBlock | GreenBlock | GreenBlock ] -> [ | | ]
+
+[ player endpoint ] win
+
+=======
+LEVELS
+=======
+
+........########
+################
+########@@@@@###
+####@@@@@...@###
+###@..OO....@@##
+##@..@@@@@....@#
+##@.@..@@@..E@@#
+#@..@.O...@@@@##
+##@...@.P.######
+####@.@@@@######
+####@@##########
+########........
+
+
+
+##########
+####R.R###
+#x....#x##
+#xO#O.OxE#
+#xx##.#xx#
+#####R####
+#####P####
+O#########
+
+
+
+......#######...
+.....##P.#####..
+....###....####.
+..#####O...#B..#
+..#####.#.##BB.#
+##EBB..O.O.....#
+..#####.#.#....#
+..######..#G.###
+....####..#.OOx.
+.....###.GG.#x..
+......#######...
+
+
+######xx######
+######GG######
+##xx#...#xEx##
+##..O...#x..##
+##..#...##O###
+#..##.......##
+xG....##....Gx
+xG....##....Gx
+##.......GG###
+###G##...#xx##
+##x..#...O.x##
+##.P.#...#xx##
+######GG######
+######xx######
+
+
+
+......##......
+....######....
+..##########..
+..#.OG..kk.#..
+.##OPO..Gkk##.
+.##GOG..GGk##.
+###...##...###
+###...##...###
+.##kkG##ROR##.
+.##Gkk..OEO##.
+..#.Gk..RO.#..
+..##########..
+....######....
+......##......
+
+

@@ -2,7 +2,7 @@
 set -e
 wcc() { clang --target=wasm32 -O3 -ffreestanding -c $*; }
 txt2html() {
-(cat header; asciidoc -a 'newline=\n' -b html5 -s -o - $1; cat footer) > ${1%.*}.html
+(cat header; asciidoctor -a 'newline=\n' -b html5 -s -o - $1; cat footer) > ${1%.*}.html
 }
 txt2html index.txt
 txt2html judge.txt

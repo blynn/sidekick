@@ -1,0 +1,109 @@
+= Puzzle Pusher =
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<div style='display:none;'>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+[id="sok"]
+------------------------------------------------------------------------
+include::sok[]
+------------------------------------------------------------------------
+
+[id="hd1"]
+------------------------------------------------------------------------
+include::hd1[]
+------------------------------------------------------------------------
+
+[id="hd2"]
+------------------------------------------------------------------------
+include::hd2[]
+------------------------------------------------------------------------
+
+[id="m3"]
+------------------------------------------------------------------------
+include::m3[]
+------------------------------------------------------------------------
+
+[id="fak"]
+------------------------------------------------------------------------
+include::fak[]
+------------------------------------------------------------------------
+
+[id="rigid"]
+------------------------------------------------------------------------
+include::rigid[]
+------------------------------------------------------------------------
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+</div>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<script>
+"use strict";
+const agentMod = WebAssembly.compileStreaming(fetch('../agent.wasm'));
+async function agent(canister_id, request_type, method, arg) {
+  function teen(s) { return (new TextEncoder()).encode(s); }
+  let out = [];
+  const args = [teen(canister_id), teen(request_type), teen(method), arg];
+  const x = await WebAssembly.instantiate(await agentMod, {env:
+    { putchar: c      => out.push(c)
+    , argc   : ()     => args.length
+    , argvlen: n      => args[n].length
+    , argvat : (n, k) => args[n][k]
+    , now    : ()     => Date.now()/1000
+    }});
+  await x.exports.go();
+  return await fetch(
+    "https://ic0.app/api/v2/canister/" + canister_id + "/" + request_type,
+    // "http://localhost:8000/api/v2/canister/" + canister_id + "/" + request_type,
+    { method: "POST"
+    , headers: { "Content-Type": "application/cbor" }
+    , body: Uint8Array.from(out)
+    }
+  );
+};
+let arg = [];
+function leb(n) {
+  if (n <= 127) arg.push(n);
+  else {
+    arg.push(n%128 + 128);
+    leb(n>>7);
+  }
+}
+function enc(s) {
+  leb(s.length);
+  for (let i=0; i<s.length; i++) arg.push(s.charCodeAt(i));
+}
+const canid = "aq6z7-uyaaa-aaaae-aaaqa-cai";
+// const canid = "qoctq-giaaa-aaaaa-aaaea-cai";
+
+function send(method, name, p) {
+  console.log(name);
+  const s = document.getElementById(p).children[0].children[0].textContent;
+  arg = [];
+  enc(name);
+  enc(s);
+  agent(canid, "call", method, arg).then(response => {
+    if (response.status != 202) {
+      response.text().then(t => { console.log(t); });
+    }
+  });
+}
+
+function upload() {
+  // When running on a local IC, a one-shot POST to /api/v2 works.
+  // I could only get it working on the real IC by splititng "hd" in two.
+  send("save", "Sokoban HD", "hd1");
+  send("append", "Sokoban HD", "hd2");
+
+  send("save", "Hello Sokoban", "sok");
+  send("save", "Match 3", "m3");
+  send("save", "Block Faker", "fak");
+  send("save", "test", "rigid");
+}
+</script>
+
+<button id='go' onclick="upload();">Go</button>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+

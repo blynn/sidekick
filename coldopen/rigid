@@ -1,0 +1,99 @@
+== Based on:
+== title Iterated Extended Rigid Body Test
+== author Scott Hughes
+
+=======
+OBJECTS
+=======
+
+Background
+white
+
+Player
+pink
+
+Player2
+pink
+
+Box1
+red
+
+Box2
+green
+
+Wall
+grey
+
+Register
+grey
+
+======
+LEGEND
+======
+
+. = Background
+@ = Player
+! = Player2
+1 = Box1
+2 = Box2
+# = Wall
+$ = Register
+
+Box = Box1 or Box2
+Thing = Box or Player or Player2
+
+=====
+RULES
+=====
+
+[ moving Player ] [ Register ] -> [ moving Player ] [ moving Register ]
+[ > Player | Box ] -> [ > Player | > Box ]
+
+[ moving Box1 | Box1 ] -> [ moving Box1 | moving Box1 ]
+[ moving Box2 | Box2 ] -> [ moving Box2 | moving Box2 ]
+[ > Box | Box ] -> [ > Box | > Box ]
+
+[ moving Box1 | Box1 ] -> [ moving Box1 | moving Box1 ]
+[ moving Box2 | Box2 ] -> [ moving Box2 | moving Box2 ]
+
+[ > Thing | Wall ] -> [ Thing | Wall Halt ]
+
+[ Halt ] [ moving Thing ] -> [ Halt ] [ Thing ]
+[ Halt ] -> [ ]
+
+[ > Thing | no Thing ] -> [ | Thing ]
+
+[ > Register ] [ Player2 ] -> [ > Register ] [ > Player2 ]
+[ > Player2 | Box ] -> [ > Player2 | > Box ]
+
+[ moving Box1 | Box1 ] -> [ moving Box1 | moving Box1 ]
+[ moving Box2 | Box2 ] -> [ moving Box2 | moving Box2 ]
+[ > Box | Box ] -> [ > Box | > Box ]
+
+[ moving Box1 | Box1 ] -> [ moving Box1 | moving Box1 ]
+[ moving Box2 | Box2 ] -> [ moving Box2 | moving Box2 ]
+
+[ > Thing | Wall ] -> [ Thing | Wall Halt ]
+
+[ Halt ] [ moving Thing ] -> [ Halt ] [ Thing ]
+[ Halt ] -> [ ]
+
+[ > Thing | no Thing ] -> [ | Thing ]
+
+======
+LEVELS
+======
+
+###########
+#....#....#
+#.2..#....#
+#.2..#.11.#
+#....#..#.#
+#....#.2..#
+#.111#.22.#
+##1..#..2.#
+#....#....#
+#.!..#..@.#
+#....#...##
+#....#....#
+$##########
