@@ -1,0 +1,77 @@
+= B.Lynnihack =
+
+Build canisters in Haskell. Save code forever. Compile and run in the browser.
+
+== Are you judging me? ==
+
+I wove a sort of story which hopefully makes evaluating this entry more fun:
+
+  1. Visit the canister URL and follow the link for the judges.
+
+  2. Try to push all crates to target squares. It's Sokoban!
+
+  3. Press Q or Escape to quit. Surprise! We're actually in a game editor.
+  Here you can change the graphics, the levels, and the rules, and also save
+  your work, which persists on a canister on the IC.
+
+  4. Click the link to B.Lynnihack, login with "demo". This time it's a Haskell
+  compiler, and again you can edit code which persists. Click "Run" to compile
+  and run programs in the browser.
+
+  5. But there's more! Lower down the page is a "Download wasm canister"
+  button. With suitable foreign export declarations, clicking this button
+  produces a wasm canister that can be deployed on the Internet Computer.
+  Follow the instructions to see it in action.
+
+In fact, the canister which holds the PuzzleScript games was built using this
+app. It's the "persist map" example.
+
+Navigate to `/rps` for another canister built by B.Lynnihack.
+
+This entry might count as an SDK, but it also includes:
+
+  * Sokoban-style puzzle maker.
+  * Massively multiplayer rock-paper-scissors.
+  * Candid buffer decoder with annotations.
+  * Drawing the mandelbrot set with 16-bit integer arithmetic.
+  * Enigma machine simulation.
+  * Arbitrary precision arithmetic library.
+  * ...explore to find more!
+
+== How to build ==
+
+Assuming `git wget make time` are installed:
+
+  $ apt install clang lld gperf asciidoctor
+  $ ./mkall
+
+To build the puzzle store, follow the instructions for building a canister from
+the "persist map" example. Change the canister ID in `judge.txt` to match, and
+rebuild the B.Lynnihack canister with:
+
+  $ ./mkui && ./mkwasm
+
+Follow similar steps to build the Rock Paper Scissors demo.
+
+It remains to seed the puzzle store canister with preset examples. The
+`coldopen` directory contains the AsciiDoc source of a webpage. Build
+this webpage (`asciidoctor puzzlepusher.txt`), load it in a browser,
+and click "Go".
+
+== Notes ==
+
+I'm playing DFINIHack on Hard Mode:
+
+  * solo team
+  * no Motoko
+  * no Rust
+  * no npm; in fact, no JS libraries
+  * no GHC
+  * C allowed, but nothing beyond stdio and stdlib
+
+These constraints forced me to roll my own IC agent and encoders and decoders
+for Candid, CBOR, and even wasm. Thankfully I could draw on past work:
+
+  * https://fxa77-fiaaa-aaaae-aaana-cai.raw.ic0.app/[Internet Computer experiments]
+  * https://github.com/blynn/compiler[a Haskell compiler]
+  * https://crypto.stanford.edu/~blynn/play/puzzlescript.html[a PuzzleScript clone]

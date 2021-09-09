@@ -15,7 +15,9 @@ include::System.hs[]
 <div id="rego" style="display:none;">
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-*Judges, please start at link:judge[this puzzling introduction]*.
+*Judges, please see
+https://github.com/blynn/blynnihack/blob/master/README.adoc[the README]
+and start at link:judge[this puzzling introduction]*.
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
