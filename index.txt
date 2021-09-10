@@ -1,4 +1,4 @@
-= B.Lynnihack =
+= Sidekick =
 
 [pass]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -16,7 +16,7 @@ include::System.hs[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 *Judges, please see
-https://github.com/blynn/blynnihack/blob/master/README.adoc[the README]
+https://github.com/blynn/sidekick/blob/master/README.adoc[the README]
 and start at link:judge[this puzzling introduction]*.
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -147,7 +147,7 @@ Thus we turn programs into canisters simply by declaring "canister_query" and
 <div id='caveats' style='display:none;'>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-This version of Haskell lacks many features, such as:
+This version of Haskell is primitive:
 
   * No unary minus. Write `(0 - x)` instead.
   * No qualified identifiers. We dumps all imported symbols into a single
@@ -158,7 +158,11 @@ This version of Haskell lacks many features, such as:
   * No seq or bang patterns.
   * Fails to escape unprintable chars when showing them.
   * Many missing checks.
-  * Sane error handling and reporting.
+  * Awful error handling and reporting.
+  * Foreign imports are restricted to those in the `System` module.
+  For arbitrary imports, use the C backend of
+  https://github.com/blynn/compiler[my compiler], then build a wasm binary with
+  Clang or similar.
 
 There are a few niceties:
 

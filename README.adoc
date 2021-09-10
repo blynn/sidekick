@@ -1,4 +1,4 @@
-= B.Lynnihack =
+= Sidekick =
 
 Build canisters in Haskell. Save code forever. Compile and run in the browser.
 
@@ -14,7 +14,7 @@ I wove a sort of story which hopefully makes evaluating this entry more fun:
   Here you can change the graphics, the levels, and the rules, and also save
   your work, which persists on a canister on the IC.
 
-  4. Click the link to B.Lynnihack, login with "demo". This time it's a Haskell
+  4. Click the link to Sidekick, login with "demo". This time it's a Haskell
   compiler, and again you can edit code which persists. Click "Run" to compile
   and run programs in the browser.
 
@@ -26,7 +26,7 @@ I wove a sort of story which hopefully makes evaluating this entry more fun:
 In fact, the canister which holds the PuzzleScript games was built using this
 app. It's the "persist map" example.
 
-Navigate to `/rps` for another canister built by B.Lynnihack.
+Navigate to `/rps` for another canister built by Sidekick.
 
 This entry might count as an SDK, but it also includes:
 
@@ -47,7 +47,7 @@ Assuming `git wget make time` are installed:
 
 To build the puzzle store, follow the instructions for building a canister from
 the "persist map" example. Change the canister ID in `judge.txt` to match, and
-rebuild the B.Lynnihack canister with:
+rebuild the Sidekick canister with:
 
   $ ./mkui && ./mkwasm
 

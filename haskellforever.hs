@@ -395,7 +395,7 @@ foreign export ccall "canister_query go" main
 main = interact $ enigma "AAA"
 |])
   , ("persist map", [r|import Map
-main = putStrLn "Visit judge/ to see an application."
+main = putStrLn "Visit /judge to see an application."
 bigmap :: IORef (Map String String)
 bigmap = unsafePerformIO $ newIORef mempty
 

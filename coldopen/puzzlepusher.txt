@@ -76,7 +76,6 @@ function enc(s) {
   for (let i=0; i<s.length; i++) arg.push(s.charCodeAt(i));
 }
 const canid = "aq6z7-uyaaa-aaaae-aaaqa-cai";
-// const canid = "qoctq-giaaa-aaaaa-aaaea-cai";
 
 function send(method, name, p) {
   console.log(name);
@@ -106,4 +105,3 @@ function upload() {
 
 <button id='go' onclick="upload();">Go</button>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-

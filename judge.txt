@@ -7,7 +7,7 @@ Controls:
   * Undo: Z
   * Quit: Q or Escape.
 
-The canister storing these puzzles was link:..[built with B.Lynnihack]!
+The canister storing these puzzles was link:..[built with Sidekick]!
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 <p>
@@ -410,6 +410,6 @@ I had some ideas on how to improve https://www.puzzlescript.net/ so I
 tried them out: https://crypto.stanford.edu/~blynn/play/puzzlescript.html.
 This demo is adapted from that experiment.
 
-Incidentally, this PuzzleScript interpreter could also be built by B.Lynnihack
+Incidentally, this PuzzleScript interpreter could also be built by Sidekick
 if my compiler supported arbitrary foreign imports for the wasm backend.
 Instead I had to use the C backend and produced a wasm binary with Clang.
